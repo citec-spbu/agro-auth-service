@@ -1,11 +1,15 @@
+import uuid
 from datetime import datetime, timedelta
 
 from fastapi import Depends, HTTPException, status
+from aiokafka import AIOKafkaProducer
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.database import get_async_session
+from src.kafka.deps import get_kafka_producer
+from src.kafka.config import kafka_settings
 from src.models.users import User
 from src.schemas.token import TokenPayloadSchema, TokenSchema
 from src.schemas.user import UserCreateSchema, UserUpdateSchema
@@ -15,9 +19,14 @@ from src.utils.roles import RoleEnum
 
 
 class AuthService:
-    def __init__(self, session: AsyncSession = Depends(get_async_session)):
+    def __init__(
+        self,
+        session: AsyncSession = Depends(get_async_session),
+        producer: AIOKafkaProducer = Depends(get_kafka_producer),
+    ):
         self.session = session
-    
+        self.producer = producer
+
     async def read_user(self, id: int = None, email: str = None) -> User:
         if id:
             result = await self.session.execute(
@@ -36,7 +45,7 @@ class AuthService:
                 detail="User not found"
             )
         return user
-    
+
     async def create_user(
         self,
         schema: UserCreateSchema,
@@ -53,13 +62,22 @@ class AuthService:
             )
             self.session.add(user)
             await self.session.commit()
+
+            await self.producer.send_and_wait(
+                kafka_settings.REQUESTS_TOPIC,
+                {
+                    "email": user.email,
+                    "user_id": str(user.id),
+                    "trace_id": str(uuid.uuid4()),
+                },
+            )
         else:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"User with email '{user_duplicate.email}' already exists"
             )
         return user
-        
+
     async def login(self, email: str, password_text: str) -> TokenSchema:
         try:
             user = await self.read_user(email=email)
@@ -87,7 +105,7 @@ class AuthService:
         user.email = schema.email
         user.password_hashed = Token.get_password_hash(schema.text_password)
         await self.session.commit()
-    
+
     async def delete_user(self, id: int) -> None:
         await self.session.execute(
             delete(User)
