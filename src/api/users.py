@@ -62,8 +62,8 @@ async def get_created_users(
 
 @router.delete("/workers/{id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_worker(
-    id: str,
+    id: uuid.UUID,
     organization_info: TokenPayloadSchema = Depends(Token.verify_organization),
     service: AuthService = Depends()
 ):
-    await service.delete_worker(uuid.UUID(organization_info.sub), uuid.UUID(id))
+    await service.delete_worker(uuid.UUID(organization_info.sub), id)
