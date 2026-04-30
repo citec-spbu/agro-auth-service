@@ -1,32 +1,27 @@
-# Auth microservice
-Микровервис для аутентификации в "Цифровом двойнике".
+# agro-auth-service
 
-## Разработано с помощью:
+Микросервис аутентификации и интроспекции JWT для платформы.
+
+## Стек
 - Python 3.11
 - FastAPI
-- PostgreSQL 
+- PostgreSQL
 - SQLAlchemy v2
-- Pydantic v2
 
-## Сборка и запуск проекта:
-    git clone https://github.com/AgroScience-Team/auth-service.git
+## Быстрый запуск
+```bash
+docker network create agronetwork 2>/dev/null || true
+docker compose up -d --build
+```
 
-Если не создана docker-сеть `agronetwork`, то:
+Сервис доступен на `http://localhost:8001`, Swagger - `http://localhost:8001/docs`.
 
-    docker create network agronetwork
+## Переменные окружения
+Конфигурация хранится в `.env` (используется `docker-compose.yml`).
 
-Из корневой папки проекта:
-
-    docker compose up -d 
-
-Swagger: `http://0.0.0.0:8000/docs`
-
-## Работа в Swagger:
-
-При переходе на:
-`http://0.0.0.0:8000/docs` будут доступны текущие эндпоинты. Для работы с некоторыми из них, требуется аутентификация/авторизация (такие эндпоинты помечены значком 🔓). 
-
-- В правом верхнем углу есть кнопка `Authorize`, генерирующая форму для аутентификации.
-
-- При успешной аутентификации, значки защищенных эндпоинтов меняются на 🔒, и теперь, вы можете тестировать защищенные эндпоинты (в заголовки запросов автоматически добаляется JWToken, сгенерированный на этапе аутентификации).
+## Проверка интроспекции токена
+```bash
+curl -X POST http://localhost:8001/api/auth/introspect \
+  -H "Authorization: Bearer <JWT>"
+```
 
