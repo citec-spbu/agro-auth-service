@@ -27,6 +27,7 @@ services:
   db:
     container_name: users-db
     image: postgres:15
+    command: postgres -c wal_level=logical
     volumes:
       - pgdbdata:/var/lib/postgresql/data/
     env_file:
