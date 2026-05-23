@@ -21,8 +21,6 @@ services:
       - db
     env_file:
       - .env
-    profiles:
-      - tools
 
   db:
     container_name: users-db
